@@ -2,9 +2,9 @@
 {% block body %}
 
 <div class="row">
-    <h3 id="header">CAPM Portfolio Optimization</h3>
+    <h3 id="header">Portfolio Optimization</h3>
 </div>
-<<div id='line'”>
+<div id='line'”>
 
 </div>
 <script type='text/javascript'>
@@ -48,12 +48,18 @@
 <div id='chart' class='chart'”>
 
 </div>
-<br><br>  
-		<center>
-		<div>{{description}}</div>
-		<br><br>	
-		{{ table|safe }}
-		</center>
+<br><br> 
+
+
+
+        <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+        <script type="text/javascript">
+            var graph_hourly = JSON.parse('{{graphJSON_hourly | safe}}');
+            Plotly.plot('chart1',graph_hourly,{}); 
+            var graph_daily =JSON.parse('{{graphJSON_daily | safe}}');  
+            Plotly.newPlot('chart2',graph_daily,{});   	
+        </script>
+
 <script type='text/javascript'>
     var graphs = JSON.parse('{{graphJSON | safe}}');
     Plotly.plot('chart',graphs,{});
@@ -74,4 +80,23 @@
     change_heading();
 
 </script>
+<h1>{{header}}</h1>
+<div id="chart1" class="chart"></div>
+<div id="chart2" class="chart2"></div>
+<br><br>  
+<center>
+<div>{{description}}</div>
+<br><br>	
+{{ table|safe }}
+</center>
+</body>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script type="text/javascript">
+var graph_hourly = JSON.parse('{{graphJSON_hourly | safe}}');
+Plotly.plot('chart1',graph_hourly,{}); 
+var graph_daily =JSON.parse('{{graphJSON_daily | safe}}');  
+Plotly.newPlot('chart2',graph_daily,{});   	
+</script>
+
 {% endblock %}

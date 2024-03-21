@@ -55,8 +55,9 @@ def score_news(parsed_news_df):
     vader = SentimentIntensityAnalyzer()
     scores = parsed_news_df['headline'].apply(vader.polarity_scores).tolist()
     scores_df = pd.DataFrame(scores)
+    print(scores_df)
     parsed_and_scored_news = parsed_news_df.join(scores_df, rsuffix='_right')
-    parsed_and_scored_news = parsed_and_scored_news.set_index('datetime')
+    # parsed_and_scored_news = parsed_and_scored_news.set_index('datetime')
     parsed_and_scored_news = parsed_and_scored_news.drop(['date', 'time'],axis=1)    
     parsed_and_scored_news = parsed_and_scored_news.rename(columns={"compound": "sentiment_score"})
     print(parsed_and_scored_news)
@@ -67,30 +68,19 @@ def score_news(parsed_news_df):
 
 
 def plot_hourly_sentiment(parsed_and_scored_news, ticker):
-   # Check data types
-    print(parsed_and_scored_news.dtypes)
-
-# Convert score column to numeric type
-    parsed_and_scored_news['sentiment_score'] = pd.to_numeric(parsed_and_scored_news['sentiment_score'], errors='coerce')
-
-# Check for NaNs or non-numeric values
-    print(parsed_and_scored_news['sentiment_score'].isnull().sum())
-
-# Remove rows with NaNs if necessary
-    parsed_and_scored_news = parsed_and_scored_news.dropna(subset=['sentiment_score'])
-
-# Resample and calculate mean
-    mean_scores = parsed_and_scored_news.resample('H').mean()
-
-    # mean_scores = parsed_and_scored_news.resample('H').mean()
-
+    print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # parsed_and_scored_news['datetime'] = pd.to_datetime(parsed_and_scored_news['datetime'])
+    print(type(len(parsed_and_scored_news)))
+    total=len(parsed_and_scored_news)
+    mean_scores = parsed_and_scored_news.resample('h',on="datetime").sum()
+    mean_scores["sentiment_score"]=mean_scores["sentiment_score"]/total
     fig = px.bar(mean_scores, x=mean_scores.index, y='sentiment_score', title = ticker + ' Hourly Sentiment Scores')
     return fig 
 
 def plot_daily_sentiment(parsed_and_scored_news, ticker):
-   
-    mean_scores = parsed_and_scored_news.resample('D').mean()
-
+    total=len(parsed_and_scored_news)
+    mean_scores = parsed_and_scored_news.resample('D',on="datetime").sum()
+    mean_scores["sentiment_score"]=mean_scores["sentiment_score"]/total
     fig = px.bar(mean_scores, x=mean_scores.index, y='sentiment_score', title = ticker + ' Daily Sentiment Scores')
     return fig
 
@@ -115,11 +105,12 @@ def sentiment():
 
     parsed_and_scored_news = score_news(parsed_news_df)
     parsed_and_scored_news.to_csv('filename3.csv', index=True)
-    # fig_hourly = plot_hourly_sentiment(parsed_and_scored_news, tickers)
-    # fig_daily = plot_daily_sentiment(parsed_and_scored_news, tickers)
+    parsed_and_scored_news['datetime'] = pd.to_datetime(parsed_and_scored_news['datetime'])
+    fig_hourly = plot_hourly_sentiment(parsed_and_scored_news, tickers)
+    fig_daily = plot_daily_sentiment(parsed_and_scored_news, tickers)
 
-    # graphJSON_hourly = json.dumps(fig_hourly, cls=plotly.utils.PlotlyJSONEncoder)
-    # graphJSON_daily = json.dumps(fig_daily, cls=plotly.utils.PlotlyJSONEncoder)
+    graphJSON_hourly = json.dumps(fig_hourly, cls=plotly.utils.PlotlyJSONEncoder)
+    graphJSON_daily = json.dumps(fig_daily, cls=plotly.utils.PlotlyJSONEncoder)
 
     header= "Hourly and Daily Sentiment of {} Stock".format(tickers)
     description = """
@@ -128,7 +119,7 @@ def sentiment():
 	The news headlines are obtained from the FinViz website.
 	Sentiments are given by the nltk.sentiment.vader Python library.
     """.format(tickers)
-    return render_template('senti.html', header=header,table=parsed_and_scored_news.to_html(classes='data'),description=description)
+    return render_template('senti.html',graphJSON_hourly=graphJSON_hourly, graphJSON_daily=graphJSON_daily, header=header,table=parsed_and_scored_news.to_html(classes='data'),description=description)
 
 
 

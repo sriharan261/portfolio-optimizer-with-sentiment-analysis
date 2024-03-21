@@ -81,7 +81,7 @@ def corel_map(df):
     fig_corr = px.imshow(corr_df, text_auto=True ,title = '')
     graphJSON = json.dumps(fig_corr, cls=plotly.utils.PlotlyJSONEncoder)
     return graphJSON
-    print(fig_corr)
+    # print(fig_corr)
 
 def linechart(stocks_df):
     fig_price = px.line(stocks_df, title='Price of Individual Stocks')

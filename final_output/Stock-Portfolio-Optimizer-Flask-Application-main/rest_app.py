@@ -138,21 +138,29 @@ def delete_portfolio(id):
 @app.route("/portfolio_optimizer")
 @app.route("/portfolio_optimizer/<string:assets>")
 def portfolio_optimizer(assets=None):
-    print(assets)
+    # print(assets)
     #ticker_list = "AAPL TSLA"
     data = dict()
+    header=None
     if assets:
-        print(assets)
+        # print(assets)
 
         print(f"assets: {assets} {type(assets)}")
         app.logger.info(assets.split())
-        header,table,description=sentiment(assets)
+        try:
+            graphJSON_hourly, graphJSON_daily,header,table,description=sentiment(assets)
+        except Exception as e:
+             graphJSON_hourly, graphJSON_daily,header,table,description={},{},"","",""
         minRisk, maxReturn,graphJSON,fig = optimizer.optimize(assets)
         data["minRisk"] = minRisk
         data["maxReturn"] = maxReturn
     elif request.args.get("tickers") and len(request.args.get("tickers").split()) >= 2:
         ticker_list = request.args.get("tickers")
         app.logger.info(ticker_list.split())
+        try:
+            graphJSON_hourly, graphJSON_daily,header,table,description=sentiment(assets)
+        except Exception as e:
+             graphJSON_hourly, graphJSON_daily,header,table,description=None,None,"","","" 
         minRisk, maxReturn,graphJSON,fig = optimizer.optimize(ticker_list)
         data["minRisk"] = minRisk
         data["maxReturn"] = maxReturn
@@ -174,7 +182,7 @@ def portfolio_optimizer(assets=None):
         
     new_data = [minRisk_data, maxReturn_data]
 
-    return render_template("portfolio_optimizer.html", data=new_data, img='./static/figures/New folder/Stock-Portfolio-Optimizer-Flask-Application-main/static/figures/efficient_frontier.png',graphJSON=graphJSON,fig=fig, header=header,table=table,description=description)
+    return render_template("portfolio_optimizer.html", graphJSON_daily=graphJSON_daily, graphJSON_hourly= graphJSON_hourly,data=new_data, img='./static/figures/New folder/Stock-Portfolio-Optimizer-Flask-Application-main/static/figures/efficient_frontier.png',graphJSON=graphJSON,fig=fig, header=header,table=table,description=description)
 
 if __name__ == '__main__':
     # app.run(host="0.0.0.0", port=8090)

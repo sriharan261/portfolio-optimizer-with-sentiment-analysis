@@ -54,17 +54,32 @@ def score_news(parsed_news_df):
     scores = parsed_news_df['headline'].apply(vader.polarity_scores).tolist()
     scores_df = pd.DataFrame(scores)
     parsed_and_scored_news = parsed_news_df.join(scores_df, rsuffix='_right')
-    parsed_and_scored_news = parsed_and_scored_news.set_index('datetime')
+    # parsed_and_scored_news = parsed_and_scored_news.set_index('datetime')
     parsed_and_scored_news = parsed_and_scored_news.drop(['date', 'time'],axis=1)    
     parsed_and_scored_news = parsed_and_scored_news.rename(columns={"compound": "sentiment_score"})
-    print(parsed_and_scored_news)
+    parsed_and_scored_news.to_csv("abc.csv")
     return parsed_and_scored_news
 
+def plot_hourly_sentiment(parsed_and_scored_news, ticker):
+    # print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    # parsed_and_scored_news['datetime'] = pd.to_datetime(parsed_and_scored_news['datetime'])
+    # print(type(len(parsed_and_scored_news)))
+    total=len(parsed_and_scored_news)
+    mean_scores = parsed_and_scored_news.resample('h',on="datetime").sum()
+    mean_scores["sentiment_score"]=mean_scores["sentiment_score"]/total
+    fig = px.bar(mean_scores, x=mean_scores.index, y='sentiment_score', title = ticker + ' Hourly Sentiment Scores')
+    return fig 
 
+def plot_daily_sentiment(parsed_and_scored_news, ticker):
+    total=len(parsed_and_scored_news)
+    mean_scores = parsed_and_scored_news.resample('D',on="datetime").sum()
+    mean_scores["sentiment_score"]=mean_scores["sentiment_score"]/total
+    fig = px.bar(mean_scores, x=mean_scores.index, y='sentiment_score', title = ticker + ' Daily Sentiment Scores')
+    return fig
 
 def sentiment(tickers):
     tickers_list=[i.upper() for i in tickers.split(' ')]
-    print(tickers_list)
+    # print(tickers_list)
     columns = ['date', 'time', 'headline']
     parse_news_df = pd.DataFrame(columns=columns)
 
@@ -73,19 +88,22 @@ def sentiment(tickers):
         try:
             news_table = get_news(tick)
             p=parse_news(news_table)
-            print(p)
+            # print(p)
             parse_news_df = pd.concat([parse_news_df, p], axis=0)
         except  Exception as e:
             continue
         
     parsed_and_scored_news = score_news(parse_news_df)
-    
-	
+    parsed_and_scored_news['datetime'] = pd.to_datetime(parsed_and_scored_news['datetime'])
+    fig_hourly = plot_hourly_sentiment(parsed_and_scored_news, tickers)
+    fig_daily = plot_daily_sentiment(parsed_and_scored_news, tickers)
+
+    graphJSON_hourly = json.dumps(fig_hourly, cls=plotly.utils.PlotlyJSONEncoder)
+    graphJSON_daily = json.dumps(fig_daily, cls=plotly.utils.PlotlyJSONEncoder)
+
     header= "Hourly and Daily Sentiment of {} Stock".format(tickers)
     description = """
 	The above chart averages the sentiment scores of {} stock hourly and daily.
 	The table below gives each of the most recent headlines of the stock and the negative, neutral, positive and an aggregated sentiment score.
-	The news headlines are obtained from the FinViz website.
-	Sentiments are given by the nltk.sentiment.vader Python library.
     """.format(tickers)
-    return header,parsed_and_scored_news.to_html(classes='data'),description
+    return graphJSON_hourly,graphJSON_daily ,header,parsed_and_scored_news.to_html(classes='data'),description
